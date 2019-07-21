@@ -2,7 +2,7 @@
 
 定制版QDUOJ,添加了若干功能.
 
-需要和 [前端](https://github.com/HandsomeHow/OnlineJudgeFE), [Judger](https://github.com/HandsomeHow/Judger), [JudgeServer](https://github.com/HandsomeHow/JudgeServer)配合使用,请自行构建镜像,然后将前端编译后的dist文件放到后端/app目录下.
+> #### An onlinejudge system based on Python and Vue. [Demo](https://qduoj.com)
 
 
 # Feature
@@ -18,8 +18,7 @@
 
 在contest描述中 最后的地方添加 “limit:#xxxx#“(不包含引号)即可,其中xxxx为用户名需要满足的正则表达式,如 limit:#201[5-8]11[0-9]{4}# 将使得用户名为"2015111234"的用户能够进入比赛,而"acm201111"的用户不能进入比赛.
 
-![限制描述示例][2]
-![被限制示例][3]
+[https://docs.onlinejudge.me/](https://docs.onlinejudge.me/)
 
 ## 比赛代码查重
 

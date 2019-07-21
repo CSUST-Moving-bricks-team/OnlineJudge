@@ -17,7 +17,6 @@ from account.decorators import super_admin_required
 from account.models import User
 from contest.models import Contest
 from judge.dispatcher import process_pending_task
-from judge.languages import languages, spj_languages
 from options.options import SysOptions
 from problem.models import Problem
 from submission.models import Submission
@@ -147,7 +146,7 @@ class JudgeServerHeartbeatAPI(CSRFExemptAPIView):
             server.service_url = data["service_url"]
             server.ip = request.ip
             server.last_heartbeat = timezone.now()
-            server.save()
+            server.save(update_fields=["judger_version", "cpu_core", "memory_usage", "service_url", "ip", "last_heartbeat"])
         except JudgeServer.DoesNotExist:
             JudgeServer.objects.create(hostname=data["hostname"],
                                        judger_version=data["judger_version"],
@@ -158,15 +157,15 @@ class JudgeServerHeartbeatAPI(CSRFExemptAPIView):
                                        service_url=data["service_url"],
                                        last_heartbeat=timezone.now(),
                                        )
-            # 新server上线 处理队列中的，防止没有新的提交而导致一直waiting
-            process_pending_task()
+        # 新server上线 处理队列中的，防止没有新的提交而导致一直waiting
+        process_pending_task()
 
         return self.success()
 
 
 class LanguagesAPI(APIView):
     def get(self, request):
-        return self.success({"languages": languages, "spj_languages": spj_languages})
+        return self.success({"languages": SysOptions.languages, "spj_languages": SysOptions.spj_languages})
 
 
 class TestCasePruneAPI(APIView):

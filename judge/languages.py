@@ -1,3 +1,6 @@
+from problem.models import ProblemIOMode
+
+
 default_env = ["LANG=en_US.UTF-8", "LANGUAGE=en_US:en", "LC_ALL=en_US.UTF-8"]
 
 _c_lang_config = {
@@ -28,7 +31,7 @@ int main() {
     },
     "run": {
         "command": "{exe_path}",
-        "seccomp_rule": "c_cpp",
+        "seccomp_rule": {ProblemIOMode.standard: "c_cpp", ProblemIOMode.file: "c_cpp_file_io"},
         "env": default_env
     }
 }
@@ -76,7 +79,7 @@ int main() {
     },
     "run": {
         "command": "{exe_path}",
-        "seccomp_rule": "c_cpp",
+        "seccomp_rule": {ProblemIOMode.standard: "c_cpp", ProblemIOMode.file: "c_cpp_file_io"},
         "env": default_env
     }
 }
@@ -179,9 +182,3 @@ languages = [
     {"config": _py2_lang_config, "name": "Python2", "description": "Python 2.7", "content_type": "text/x-python"},
     {"config": _py3_lang_config, "name": "Python3", "description": "Python 3.5", "content_type": "text/x-python"},
 ]
-
-spj_languages = list(filter(lambda item: "spj" in item, languages))
-
-
-language_names = [item["name"] for item in languages]
-spj_language_names = [item["name"] for item in spj_languages]

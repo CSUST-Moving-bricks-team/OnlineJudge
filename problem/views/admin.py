@@ -16,7 +16,7 @@ from contest.models import Contest, ContestStatus
 from contest.tasks import contest_rejudge_task
 from fps.parser import FPSHelper, FPSParser
 from judge.dispatcher import SPJCompiler
-from judge.languages import language_names
+from options.options import SysOptions
 from submission.models import Submission, JudgeStatus
 from utils.api import APIView, CSRFExemptAPIView, validate_serializer, APIError
 from utils.constants import Difficulty
@@ -305,11 +305,9 @@ class ProblemAPI(ProblemBase):
         except Problem.DoesNotExist:
             return self.error("Problem does not exists")
         ensure_created_by(problem, request.user)
-        if Submission.objects.filter(problem=problem).exists():
-            return self.error("Can't delete the problem as it has submissions")
-        d = os.path.join(settings.TEST_CASE_DIR, problem.test_case_id)
-        if os.path.isdir(d):
-            shutil.rmtree(d, ignore_errors=True)
+        # d = os.path.join(settings.TEST_CASE_DIR, problem.test_case_id)
+        # if os.path.isdir(d):
+        #     shutil.rmtree(d, ignore_errors=True)
         problem.delete()
         return self.success()
 
@@ -546,7 +544,7 @@ class ExportProblemAPI(APIView):
         with zipfile.ZipFile(path, "w") as zip_file:
             for index, problem in enumerate(problems):
                 self.process_one_problem(zip_file=zip_file, user=request.user, problem=problem, index=index + 1)
-        delete_files.apply_async((path,), countdown=300)
+        delete_files.send_with_options(args=(path,), delay=300_000)
         resp = FileResponse(open(path, "rb"))
         resp["Content-Type"] = "application/zip"
         resp["Content-Disposition"] = f"attachment;filename=problem-export.zip"
@@ -583,7 +581,7 @@ class ImportProblemAPI(CSRFExemptAPIView, TestCaseZipProcessor):
                         else:
                             problem_info = serializer.data
                             for item in problem_info["template"].keys():
-                                if item not in language_names:
+                                if item not in SysOptions.language_names:
                                     return self.error(f"Unsupported language {item}")
 
                         problem_info["display_id"] = problem_info["display_id"][:24]
@@ -618,7 +616,7 @@ class ImportProblemAPI(CSRFExemptAPIView, TestCaseZipProcessor):
                                                              spj_language=problem_info["spj"][
                                                                  "language"] if spj else None,
                                                              spj_version=rand_str(8) if spj else "",
-                                                             languages=language_names,
+                                                             languages=SysOptions.language_names,
                                                              created_by=request.user,
                                                              visible=False,
                                                              difficulty=Difficulty.MID,
@@ -659,7 +657,7 @@ class FPSProblemImport(CSRFExemptAPIView):
                                input_description=problem_data["input"],
                                output_description=problem_data["output"],
                                hint=problem_data["hint"],
-                               test_case_score=[],
+                               test_case_score=problem_data["test_case_score"],
                                time_limit=time_limit,
                                memory_limit=problem_data["memory_limit"]["value"],
                                samples=problem_data["samples"],
@@ -671,7 +669,7 @@ class FPSProblemImport(CSRFExemptAPIView):
                                spj_language=problem_data["spj"]["language"] if spj else None,
                                spj_version=rand_str(8) if spj else "",
                                visible=False,
-                               languages=language_names,
+                               languages=SysOptions.language_names,
                                created_by=creator,
                                difficulty=Difficulty.MID,
                                test_case_id=problem_data["test_case_id"])
@@ -693,13 +691,17 @@ class FPSProblemImport(CSRFExemptAPIView):
                 test_case_id = rand_str()
                 test_case_dir = os.path.join(settings.TEST_CASE_DIR, test_case_id)
                 os.mkdir(test_case_dir)
-                helper.save_test_case(_problem, test_case_dir)
+                score = []
+                for item in helper.save_test_case(_problem, test_case_dir)["test_cases"].values():
+                    score.append({"score": 0, "input_name": item["input_name"],
+                                  "output_name": item.get("output_name")})
                 problem_data = helper.save_image(_problem, settings.UPLOAD_DIR, settings.UPLOAD_PREFIX)
                 s = FPSProblemSerializer(data=problem_data)
                 if not s.is_valid():
                     return self.error(f"Parse FPS file error: {s.errors}")
                 problem_data = s.data
                 problem_data["test_case_id"] = test_case_id
+                problem_data["test_case_score"] = score
                 self._create_problem(problem_data, request.user)
         return self.success({"import_count": len(problems)})
 
