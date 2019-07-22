@@ -272,7 +272,7 @@ class ContestCheckSimilarAPI(APIView):
 
             output_dir = os.path.join(check_dir, "result")
             check_files = check_dir + "/*"
-            os.system(f"/app/sim_c -p -t40 -o {output_dir} {check_files}")
+            os.system(f"/app/sim_c -p -t60 -o {output_dir} {check_files}")
             f = open(output_dir)
             similar_submissions = []
             for line in f:
@@ -303,7 +303,7 @@ class ContestCheckSimilarAPI(APIView):
                 file_path = os.path.join(check_dir, submission.id)
                 os.remove(file_path)
                 if submission.id in similar_submissions:
-                    submission.shared = True
+                    # submission.shared = True
                     submission.save()
             os.rmdir(check_dir)
 
