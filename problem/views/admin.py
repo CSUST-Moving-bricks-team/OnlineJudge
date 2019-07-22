@@ -18,7 +18,8 @@ from fps.parser import FPSHelper, FPSParser
 from judge.dispatcher import SPJCompiler
 from options.options import SysOptions
 from submission.models import Submission, JudgeStatus
-from utils.api import APIView, CSRFExemptAPIView, validate_serializer, APIError
+from submission.serializers import SubmissionListSerializer
+from utils.api import APIView, CSRFExemptAPIView, validate_serializer, APIError, logging
 from utils.constants import Difficulty
 from utils.shortcuts import rand_str, natural_sort_key
 from utils.tasks import delete_files
@@ -31,6 +32,9 @@ from ..serializers import (CreateContestProblemSerializer, CompileSPJSerializer,
                            FPSProblemSerializer)
 from ..utils import TEMPLATE_BASE, build_problem_template
 from account.decorators import super_admin_required
+from django.core import serializers
+
+logger = logging.getLogger("")
 
 
 class TestCaseZipProcessor(object):
@@ -59,7 +63,8 @@ class TestCaseZipProcessor(object):
                 size_cache[item] = len(content)
                 if item.endswith(".out"):
                     md5_cache[item] = hashlib.md5(content.rstrip()).hexdigest()
-                    stripped_md5_cache[item] = hashlib.md5(b"\n".join([x.rstrip() for x in content.split(b"\n") if len(x) > 0])).hexdigest()
+                    stripped_md5_cache[item] = hashlib.md5(
+                        b"\n".join([x.rstrip() for x in content.split(b"\n") if len(x) > 0])).hexdigest()
                 f.write(content)
         test_case_info = {"spj": spj, "test_cases": {}}
 
@@ -726,13 +731,13 @@ class ProblemRejudgeAPI(APIView):
             except Problem.DoesNotExist:
                 return self.error("Problem doesn't exist")
         if problem.visible:
-                return self.error("Problem should be invisiable")
+            return self.error("Problem should be invisible")
         try:
             submissions = Submission.objects.filter(problem_id=pid).order_by("create_time").order_by("create_time")
         except Submission.DoesNotExist:
             return self.error("No submission for this problem")
         for submission in submissions:
             if submission.result == JudgeStatus.PENDING or submission.result == JudgeStatus.JUDGING:
-                return self.error("Judgeing or pending submissions left")
-        contest_rejudge_task.delay(cid, pid, submissions, problem)
+                return self.error("Judging or pending submissions left")
+        contest_rejudge_task.send(cid, pid)
         return self.success()

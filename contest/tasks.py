@@ -1,13 +1,31 @@
-from celery import shared_task
-
+import dramatiq
 from account.models import User
-from submission.models import JudgeStatus
+from problem.models import Problem
+from submission.models import JudgeStatus, Submission
 from judge.dispatcher import JudgeDispatcher
 from contest.models import Contest, ContestRuleType, OIContestRank, ACMContestRank
+from utils.api import logging
+
+logger = logging.getLogger("")
 
 
-@shared_task
-def contest_rejudge_task(cid, pid, submissions, problem):
+@dramatiq.actor
+def contest_rejudge_task(cid, pid):
+    try:
+        if cid:
+            problem = Problem.objects.get(id=pid, contest_id=cid)
+        else:
+            problem = Problem.objects.get(id=pid, contest_id__isnull=True)
+    except Problem.DoesNotExist as e:
+        logger.exception(e)
+        return
+    try:
+        submissions = Submission.objects.filter(problem_id=pid).order_by("create_time").order_by("create_time")
+    except Submission.DoesNotExist:
+        return
+    for submission in submissions:
+        if submission.result == JudgeStatus.PENDING or submission.result == JudgeStatus.JUDGING:
+            return
     ce_cnt = dict()
     for submission in submissions:
         if submission.result == JudgeStatus.COMPILE_ERROR:
