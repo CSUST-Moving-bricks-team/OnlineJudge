@@ -1,3 +1,4 @@
+import datetime
 import io
 
 import xlsxwriter
@@ -210,3 +211,20 @@ class ContestGetSimilarAPI(APIView):
         contest_id = request.GET.get("contest_id")
         contest = Contest.objects.get(id=contest_id, visible=True)
         return self.success(ContestSimilarResultSerializer(contest).data)
+
+
+class ContestRecentAnnouncementAPI(APIView):
+    @check_contest_permission(check_type="announcements")
+    def get(self, request):
+        contest_id = request.GET.get("contest_id")
+        fetch_rate = int(request.GET.get("time")) + 1
+        if not contest_id:
+            return self.error("Invalid parameter, contest_id is required")
+        if not fetch_rate:
+            fetch_rate = 60
+        time_point = datetime.datetime.now() - datetime.timedelta(seconds=fetch_rate)
+        data = ContestAnnouncement.objects.filter(contest_id=contest_id, visible=True, create_time__gt=time_point)
+        max_id = request.GET.get("max_id")
+        if max_id:
+            data = data.filter(id__gt=max_id)
+        return self.success(ContestAnnouncementSerializer(data, many=True).data)
