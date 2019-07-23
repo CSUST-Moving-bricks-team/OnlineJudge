@@ -8,7 +8,7 @@ from django.http import FileResponse
 from django.conf import settings
 
 from account.decorators import check_contest_permission, ensure_created_by
-from account.models import User
+from account.models import User, UserProfile
 from contest.models import ContestStatus
 from problem.models import Problem
 from submission.models import Submission, JudgeStatus
@@ -283,15 +283,33 @@ class ContestCheckSimilarAPI(APIView):
                     sub2 = splited_line[-2].split("/")[-1]
                     if owner[sub1] == owner[sub2]:
                         continue
+                    try:
+                        user1 = User.objects.get(username=owner[sub1])
+                        user2 = User.objects.get(username=owner[sub2])
+                    except User.DoesNotExist:
+                        return self.error("User does not exist")
+                    if user1.is_contest_admin(contest) or user2.is_contest_admin(contest):
+                        continue
                     similar_submissions.append(sub1)
                     similar_submissions.append(sub2)
-                    sim = splited_line[3]
+                    sim = int(splited_line[3])
+                    name_a = owner[sub1]
+                    name_b = owner[sub2]
+                    try:
+                        profile1 = UserProfile.objects.get(user_id=user1.id)
+                        profile2 = UserProfile.objects.get(user_id=user2.id)
+                        if profile1.real_name:
+                            name_a += '(' + profile1.real_name + ')'
+                        if profile2.real_name:
+                            name_b += '(' + profile2.real_name + ')'
+                    except UserProfile.DoesNotExist:
+                        pass
                     to_append = {
                         "problem_id": problem._id,
                         "submission_a": sub1,
-                        "user_a": owner[sub1],
+                        "user_a": name_a,
                         "submission_b": sub2,
-                        "user_b": owner[sub2],
+                        "user_b": name_b,
                         "similarity": sim
                     }
                     data_to_write.append(to_append)

@@ -1,6 +1,7 @@
 import io
 
 import xlsxwriter
+from django.db.models import QuerySet
 from django.http import HttpResponse
 from django.utils.timezone import now
 from django.core.cache import cache
@@ -9,7 +10,7 @@ from problem.models import Problem
 from utils.api import APIView, validate_serializer
 from utils.constants import CacheKey
 from utils.shortcuts import datetime2str, check_is_id
-from account.models import AdminType
+from account.models import AdminType, User
 from account.decorators import login_required, check_contest_permission
 
 from utils.constants import ContestRuleType, ContestStatus
@@ -109,16 +110,19 @@ class ContestRankAPI(APIView):
                 rank_cnt = rank_cnt + 1
 
     def get_rank(self):
-        if self.contest.rule_type == ContestRuleType.ACM:
-            return ACMContestRank.objects.filter(contest=self.contest,
-                                                 user__admin_type=AdminType.REGULAR_USER,
-                                                 user__is_disabled=False).\
-                select_related("user").order_by("-accepted_number", "total_time")
-        else:
-            return OIContestRank.objects.filter(contest=self.contest,
-                                                user__admin_type=AdminType.REGULAR_USER,
-                                                user__is_disabled=False). \
-                select_related("user").order_by("-total_score")
+        try:
+            if self.contest.rule_type == ContestRuleType.ACM:
+                return ACMContestRank.objects.filter(contest=self.contest,
+                                                     user__admin_type=AdminType.REGULAR_USER,
+                                                     user__is_disabled=False).\
+                    select_related("user").order_by("-accepted_number", "total_time")
+            else:
+                return OIContestRank.objects.filter(contest=self.contest,
+                                                    user__admin_type=AdminType.REGULAR_USER,
+                                                    user__is_disabled=False). \
+                    select_related("user").order_by("-total_score")
+        except User.DoesNotExist:
+            return None
 
     def column_string(self, n):
         string = ""
@@ -145,6 +149,9 @@ class ContestRankAPI(APIView):
             if not qs:
                 qs = self.get_rank()
                 cache.set(cache_key, qs)
+
+        if not qs:
+            return self.error("User does not exist")
 
         if download_csv:
             data = serializer(qs, many=True, is_contest_admin=is_contest_admin).data
