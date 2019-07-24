@@ -12,9 +12,9 @@
 * 查重代码默认不公开
 * 对SuperAdmin和比赛创建者的提交不查重
 * 查重显示real name
-* rejudge无需隐藏题目
+* rejudge移到管理页面
 
 ## 新增功能
 
 * 比赛通知弹出消息框提醒
-* 对problem set中的题目rejudge
+* 支持对problem set中的题目rejudge
