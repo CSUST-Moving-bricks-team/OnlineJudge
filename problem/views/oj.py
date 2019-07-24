@@ -115,13 +115,7 @@ class ContestProblemAPI(APIView):
                 problem_data = ProblemSafeSerializer(problem).data
             return self.success(problem_data)
 
-        if is_admin:
-            contest_problems = Problem.objects.select_related("created_by").filter(contest=self.contest)
-            for problem in contest_problems:
-                if not problem.visible:
-                    problem.title = problem.title + " ( HIDEN )"
-        else:
-            contest_problems = Problem.objects.select_related("created_by").filter(contest=self.contest, visible=True)
+        contest_problems = Problem.objects.select_related("created_by").filter(contest=self.contest, visible=True)
         if self.contest.problem_details_permission(request.user):
             data = ProblemSerializer(contest_problems, many=True).data
             self._add_problem_status(request, data)

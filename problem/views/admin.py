@@ -718,18 +718,11 @@ class ProblemRejudgeAPI(APIView):
         pid = request.GET.get("problem_id")
         if not pid:
             return self.error("Parameter error, id is required")
-        if cid:
-            try:
-                problem = Problem.objects.get(_id=pid, contest_id=cid)
-                pid = problem.id
-            except Problem.DoesNotExist:
-                return self.error("Problem doesn't exist")
-        else:
-            try:
-                problem = Problem.objects.get(_id=pid, contest_id__isnull=True)
-                pid = problem.id
-            except Problem.DoesNotExist:
-                return self.error("Problem doesn't exist")
+        try:
+            problem = Problem.objects.get(id=pid, contest_id=cid) if cid \
+                else Problem.objects.get(id=pid, contest_id__isnull=True)
+        except Problem.DoesNotExist:
+            return self.error("Problem doesn't exist")
         if problem.visible:
             return self.error("Problem should be invisible")
         try:

@@ -5,11 +5,12 @@ from submission.models import JudgeStatus, Submission
 from judge.dispatcher import JudgeDispatcher
 from contest.models import Contest, ContestRuleType, OIContestRank, ACMContestRank
 from utils.api import logging
+from utils.shortcuts import DRAMATIQ_WORKER_ARGS
 
 logger = logging.getLogger("")
 
 
-@dramatiq.actor
+@dramatiq.actor(**DRAMATIQ_WORKER_ARGS())
 def contest_rejudge_task(cid, pid):
     try:
         if cid:
