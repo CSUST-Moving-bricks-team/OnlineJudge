@@ -2,7 +2,6 @@ import datetime
 import io
 
 import xlsxwriter
-from django.db.models import QuerySet
 from django.http import HttpResponse
 from django.utils.timezone import now
 from django.core.cache import cache
@@ -150,9 +149,6 @@ class ContestRankAPI(APIView):
             if not qs:
                 qs = self.get_rank()
                 cache.set(cache_key, qs)
-
-        if not qs:
-            return self.error("User does not exist")
 
         if download_csv:
             data = serializer(qs, many=True, is_contest_admin=is_contest_admin).data

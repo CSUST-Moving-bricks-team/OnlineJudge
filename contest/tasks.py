@@ -13,20 +13,20 @@ logger = logging.getLogger("")
 @dramatiq.actor(**DRAMATIQ_WORKER_ARGS())
 def contest_rejudge_task(cid, pid):
     try:
-        if cid:
-            problem = Problem.objects.get(id=pid, contest_id=cid)
-        else:
-            problem = Problem.objects.get(id=pid, contest_id__isnull=True)
+        problem = Problem.objects.get(id=pid, contest_id=cid) if cid \
+            else Problem.objects.get(id=pid, contest_id__isnull=True)
     except Problem.DoesNotExist as e:
         logger.exception(e)
         return
     try:
-        submissions = Submission.objects.filter(problem_id=pid).order_by("create_time").order_by("create_time")
+        submissions = Submission.objects.filter(problem_id=pid)
     except Submission.DoesNotExist:
         return
+    user_exist = []
     for submission in submissions:
-        if submission.result == JudgeStatus.PENDING or submission.result == JudgeStatus.JUDGING:
-            return
+        if User.objects.get(id=submission.user_id):
+            user_exist.append(submission.user_id)
+    submissions = submissions.filter(user_id__in=user_exist).order_by("create_time")
     ce_cnt = dict()
     for submission in submissions:
         if submission.result == JudgeStatus.COMPILE_ERROR:

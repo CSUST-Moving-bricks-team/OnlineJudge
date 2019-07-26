@@ -130,6 +130,7 @@ class UserAdminAPI(APIView):
         if str(request.user.id) in ids:
             return self.error("Current user can not be deleted")
         User.objects.filter(id__in=ids).delete()
+        Submission.objects.filter(user_id__in=ids).delete()
         return self.success()
 
 
