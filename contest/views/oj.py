@@ -15,7 +15,8 @@ from account.decorators import login_required, check_contest_permission
 
 from utils.constants import ContestRuleType, ContestStatus
 from ..models import ContestAnnouncement, Contest, OIContestRank, ACMContestRank
-from ..serializers import ContestAnnouncementSerializer
+from ..serializers import ContestAnnouncementSerializer, OIContestRankDownloadSerializer, \
+    ACMContestRankDownloadSerializer
 from ..serializers import ContestSerializer, ContestPasswordVerifySerializer
 from ..serializers import OIContestRankSerializer, ACMContestRankSerializer
 from ..serializers import ContestSimilarResultSerializer
@@ -151,6 +152,10 @@ class ContestRankAPI(APIView):
                 cache.set(cache_key, qs)
 
         if download_csv:
+            if self.contest.rule_type == ContestRuleType.OI:
+                serializer = OIContestRankDownloadSerializer
+            else:
+                serializer = ACMContestRankDownloadSerializer
             data = serializer(qs, many=True, is_contest_admin=is_contest_admin).data
             contest_problems = Problem.objects.filter(contest=self.contest, visible=True).order_by("_id")
             problem_ids = [item.id for item in contest_problems]

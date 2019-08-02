@@ -73,7 +73,7 @@ class ContestPasswordVerifySerializer(serializers.Serializer):
 
 class ACMContestRankSerializer(serializers.ModelSerializer):
     user = serializers.SerializerMethodField()
-    # rank = serializers.SerializerMethodField()
+    rank = serializers.SerializerMethodField()
 
     class Meta:
         model = ACMContestRank
@@ -86,13 +86,28 @@ class ACMContestRankSerializer(serializers.ModelSerializer):
     def get_user(self, obj):
         return UsernameSerializer(obj.user, need_real_name=self.is_contest_admin).data
 
-    # def get_rank(self, obj):
-    #     return obj.rank
+    def get_rank(self, obj):
+        return obj.rank
+
+
+class ACMContestRankDownloadSerializer(serializers.ModelSerializer):
+    user = serializers.SerializerMethodField()
+
+    class Meta:
+        model = ACMContestRank
+        fields = "__all__"
+
+    def __init__(self, *args, **kwargs):
+        self.is_contest_admin = kwargs.pop("is_contest_admin", False)
+        super().__init__(*args, **kwargs)
+
+    def get_user(self, obj):
+        return UsernameSerializer(obj.user, need_real_name=self.is_contest_admin).data
 
 
 class OIContestRankSerializer(serializers.ModelSerializer):
     user = serializers.SerializerMethodField()
-    # rank = serializers.SerializerMethodField()
+    rank = serializers.SerializerMethodField()
 
     class Meta:
         model = OIContestRank
@@ -105,8 +120,27 @@ class OIContestRankSerializer(serializers.ModelSerializer):
     def get_user(self, obj):
         return UsernameSerializer(obj.user, need_real_name=self.is_contest_admin).data
 
-    # def get_rank(self, obj):
-    #     return obj.rank
+    def get_rank(self, obj):
+        return obj.rank
+
+
+class OIContestRankDownloadSerializer(serializers.ModelSerializer):
+    user = serializers.SerializerMethodField()
+    rank = serializers.SerializerMethodField()
+
+    class Meta:
+        model = OIContestRank
+        fields = "__all__"
+
+    def __init__(self, *args, **kwargs):
+        self.is_contest_admin = kwargs.pop("is_contest_admin", False)
+        super().__init__(*args, **kwargs)
+
+    def get_user(self, obj):
+        return UsernameSerializer(obj.user, need_real_name=self.is_contest_admin).data
+
+    def get_rank(self, obj):
+        return obj.rank
 
 
 class ACMContesHelperSerializer(serializers.Serializer):
