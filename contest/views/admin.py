@@ -310,7 +310,7 @@ class ContestCheckSimilarAPI(APIView):
                         "user_a": name_a,
                         "submission_b": sub2,
                         "user_b": name_b,
-                        "similarity": sim
+                        "similarity": sim,
                     }
                     data_to_write.append(to_append)
             f.close()
